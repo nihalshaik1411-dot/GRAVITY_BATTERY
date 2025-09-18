@@ -10,6 +10,7 @@ FRAME_DELAY = 0.08   # seconds per animation frame (lower = faster)
 SMALL_DROP_ENERGY = 8  # battery1 units per 10kg drop
 BIG_DROP_ENERGY = 80   # battery2 units per 160kg drop
 SMALL_DROP_PER_CYCLE = 1  # number of small drops per half-cycle (A then B)
+STORAGE_THRESHOLD = 80  # kg to trigger big cycle
 # ----------------------------
 
 # ---------- SESSION STATE ----------
@@ -17,8 +18,10 @@ if "blocks_A" not in st.session_state:
     st.session_state.blocks_A = 4  # initial 40 kg = 4 blocks
 if "blocks_B" not in st.session_state:
     st.session_state.blocks_B = 2  # initial 20 kg = 2 blocks
-if "storage" not in st.session_state:
-    st.session_state.storage = 0  # kg stored underground
+if "storage_left" not in st.session_state:
+    st.session_state.storage_left = 0  # kg stored at C (left)
+if "storage_right" not in st.session_state:
+    st.session_state.storage_right = 0  # kg stored at D (right)
 if "battery1" not in st.session_state:
     st.session_state.battery1 = 0  # small battery % (0-100)
 if "battery2" not in st.session_state:
@@ -29,6 +32,8 @@ if "houses_lit" not in st.session_state:
     st.session_state.houses_lit = False
 if "running" not in st.session_state:
     st.session_state.running = False
+if "logs" not in st.session_state:
+    st.session_state.logs = []
 # For animation control (to gracefully stop loops)
 if "stop_requested" not in st.session_state:
     st.session_state.stop_requested = False
@@ -58,11 +63,17 @@ def draw_scene(dropping=None, drop_y=None, dropping_size=10, note=""):
         y0 = 50 + i * 1.05
         fig.add_shape(type="rect", x0=1.5, x1=2.1, y0=y0, y1=y0 + 0.95, fillcolor="#c53030", line=dict(color="black"))
 
-    # Draw storage (center underground) as stacked green blocks
-    stored_blocks = st.session_state.storage // 10
-    for i in range(stored_blocks):
-        y0 = -1 - i * 1.05
-        fig.add_shape(type="rect", x0=-0.6, x1=0.6, y0=y0 - 0.95, y1=y0, fillcolor="#dd6b20", line=dict(color="black"))
+    # Draw storage at C (left, under A) as stacked orange blocks
+    num_left = st.session_state.storage_left // 10
+    for i in range(num_left):
+        block_top = -50 - i * 1.05
+        fig.add_shape(type="rect", x0=-2.1, x1=-1.5, y0=block_top - 0.95, y1=block_top, fillcolor="#dd6b20", line=dict(color="black"))
+    
+    # Draw storage at D (right, under B) as stacked orange blocks
+    num_right = st.session_state.storage_right // 10
+    for i in range(num_right):
+        block_top = -50 - i * 1.05
+        fig.add_shape(type="rect", x0=1.5, x1=2.1, y0=block_top - 0.95, y1=block_top, fillcolor="#dd6b20", line=dict(color="black"))
 
     # Optional dropping block (animated)
     if dropping and drop_y is not None:
@@ -98,7 +109,7 @@ def draw_scene(dropping=None, drop_y=None, dropping_size=10, note=""):
     return fig
 
 # Helper to animate a falling rectangle from start_y to end_y with steps
-def animate_fall(placeholder, point_name, color="#2b6cb0", start_y=50, end_y=-50, steps=40, size_kg=10):
+def animate_fall(placeholder, point_name, color="#2b6cb0", start_y=50, end_y=-50, steps=50, size_kg=10):
     for step in range(steps):
         if st.session_state.stop_requested:
             return False
@@ -119,6 +130,7 @@ with left_col:
     if st.button("Start"):
         st.session_state.running = True
         st.session_state.stop_requested = False
+        st.session_state.logs = []  # Clear logs on start
     if st.button("Stop"):
         st.session_state.stop_requested = True
         st.session_state.running = False
@@ -133,7 +145,10 @@ with mid_col:
 
 with right_col:
     st.subheader("Status")
-    st.write(f"Underground storage: {st.session_state.storage} kg")
+    total_storage = st.session_state.storage_left + st.session_state.storage_right
+    st.write(f"Storage C (left): {st.session_state.storage_left} kg")
+    st.write(f"Storage D (right): {st.session_state.storage_right} kg")
+    st.write(f"Total Underground storage: {total_storage} kg")
     st.write(f"Battery B1: {st.session_state.battery1:.0f}%")
     st.write(f"Battery B2: {st.session_state.battery2:.0f}%")
     st.write(f"Generator angle: {st.session_state.generator_angle:.0f}°")
@@ -149,39 +164,48 @@ if not st.session_state.running:
 # ---------- AUTOMATIC LOOP ----------
 # The loop runs while running == True. It will exit cleanly when Stop is pressed.
 while st.session_state.running and not st.session_state.stop_requested:
-    # SMALL CYCLE PHASE: drop from A (if any)
+    total_storage = st.session_state.storage_left + st.session_state.storage_right
+
+    # SMALL CYCLE PHASE: drop from A to C (if any) - left side
     if st.session_state.blocks_A > 0:
-        ok = animate_fall(scene_ph, "A", color="#2b6cb0", start_y=50, end_y=-10, steps=30, size_kg=10)
+        ok = animate_fall(scene_ph, "A", color="#2b6cb0", start_y=50, end_y=-50, steps=50, size_kg=10)
         if not ok:
             break
-        # after drop: block moves to lower storage area (we simulate transit)
-        st.session_state.storage += 10
+        # after drop: block moves to C storage
+        st.session_state.storage_left += 10
+        st.session_state.blocks_A -= 1  # Remove from A
         st.session_state.generator_angle += 30
         st.session_state.battery1 = min(st.session_state.battery1 + SMALL_DROP_ENERGY, 100)
         # update houses lit state based on battery1 threshold
         st.session_state.houses_lit = st.session_state.battery1 >= 10
+        # Log event
+        st.session_state.logs.append("Dropped 10kg from A to C storage. Generator rotated +30°. B1 charged +8%.")
 
     # short pause
     if st.session_state.stop_requested:
         break
     time.sleep(0.2)
 
-    # SMALL CYCLE PHASE: drop from B (if any)
+    # SMALL CYCLE PHASE: drop from B to D (if any) - right side
     if st.session_state.blocks_B > 0:
-        ok = animate_fall(scene_ph, "B", color="#c53030", start_y=50, end_y=-10, steps=30, size_kg=10)
+        ok = animate_fall(scene_ph, "B", color="#c53030", start_y=50, end_y=-50, steps=50, size_kg=10)
         if not ok:
             break
-        st.session_state.storage += 10
+        st.session_state.storage_right += 10
+        st.session_state.blocks_B -= 1  # Remove from B
         st.session_state.generator_angle += 30
         st.session_state.battery1 = min(st.session_state.battery1 + SMALL_DROP_ENERGY, 100)
         st.session_state.houses_lit = st.session_state.battery1 >= 10
+        # Log event
+        st.session_state.logs.append("Dropped 10kg from B to D storage. Generator rotated +30°. B1 charged +8%.")
 
-    # After both A and B small drops, update UI status snapshot
+    # After both small drops, update UI status snapshot
     scene_ph.plotly_chart(draw_scene(), use_container_width=True)
     time.sleep(0.4)
 
     # Check for STORAGE threshold -> trigger BIG CYCLE
-    if st.session_state.storage >= 80:
+    total_storage = st.session_state.storage_left + st.session_state.storage_right
+    if total_storage >= STORAGE_THRESHOLD:
         # BIG CYCLE: simulate 160kg drop (visual big falling mass)
         # Visual: start at +50 and drop to -50 (bigger shape)
         ok = animate_fall(scene_ph, "BIG", color="#805ad5", start_y=50, end_y=-50, steps=45, size_kg=160)
@@ -190,15 +214,18 @@ while st.session_state.running and not st.session_state.stop_requested:
         # Big drop charges B2 heavily
         st.session_state.generator_angle += 360
         st.session_state.battery2 = min(st.session_state.battery2 + BIG_DROP_ENERGY, 100)
-        # Reset storage (we emptied the underground consolidated mass)
-        st.session_state.storage = 0
-        # Use Battery B2 energy to refill A and B with 40kg each (4 blocks each)
+        # Reset storages (emptied the underground consolidated mass)
+        st.session_state.storage_left = 0
+        st.session_state.storage_right = 0
+        # Use storage energy implicitly; refill A and B with 40kg each (4 blocks each)
         st.session_state.blocks_A += 4
         st.session_state.blocks_B += 4
-        # consume some B2 to lift mass back up (simulate usage)
+        # consume some B2 to lift 160kg mass back up (simulate usage)
         st.session_state.battery2 = max(st.session_state.battery2 - 40, 0)
         # update houses / battery1 based on effect
         st.session_state.houses_lit = st.session_state.battery1 >= 10
+        # Log event
+        st.session_state.logs.append("Storage full (80kg)! Big 160kg drop: Generator full spin. B2 charged +80%. Refilled A & B +40kg each. B2 used -40% for lift.")
         # show immediate scene
         scene_ph.plotly_chart(draw_scene(), use_container_width=True)
         time.sleep(0.6)
@@ -215,3 +242,7 @@ if st.session_state.stop_requested:
 
 # final state render
 scene_ph.plotly_chart(draw_scene(), use_container_width=True)
+
+# Event Log display
+st.subheader("Event Log")
+st.text_area("Simulation Events", value="\n".join(st.session_state.logs), height=200, disabled=True)
