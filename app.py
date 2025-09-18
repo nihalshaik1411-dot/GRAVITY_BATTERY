@@ -1,5 +1,3 @@
-```python
-# app.py
 import streamlit as st
 import time
 import plotly.graph_objects as go
@@ -287,16 +285,3 @@ scene_ph.plotly_chart(draw_scene(), use_container_width=True)
 # Event Log display
 st.subheader("Event Log")
 st.text_area("Simulation Events", value="\n".join(st.session_state.logs), height=200, disabled=True)
-```
-
----
-
-### Key Upgrades for Alternative Seesaw Run
-- **Seesaw Mechanics**: Implemented coupled drops via pulley/generator connection. Starts with 10kg at A (stable), 20kg at B. Drops 20kg from heavier side (initially B to D), stores 10kg at D, ties 10kg at D for future lift. Adds 10kg to A (now 20kg). Next drop from A to C pulls tied 10kg from D up to B, stores 10kg at C, ties 10kg at C. Adds 10kg to B (now 20kg). Alternates continuously, generating power to B1 per 20kg drop (+16%).
-- **Visualization**: Tied blocks (gray) at bottom positions (-50m). Stored blocks (orange) stacked below tied. Drops animated as 20kg (labeled, same width for simplicity).
-- **Storage & Big Cycle**: +10kg stored per drop (alternating sides). At 80kg total, drops 160kg central (purple, wider), charges B2 +80%, resets storages to 0, consumes 40% B2 to lift 160kg back. Small cycle continues independently (adds simulate ongoing input).
-- **Logs**: Detailed events for drops, lifts, adds, and big cycle.
-- **Initial Setup**: Top A=1 block (10kg), B=2 (20kg). Editables in controls.
-- **Energy**: B1 charges +16% per small drop (20kg), powers houses ≥10%. Generator rotates +60° per small, +360° big.
-
-Run as before (locally or Streamlit Cloud). If you want tweaks (e.g., wider drops for 20kg, variable add amounts, or tied visuals adjusted), let me know!
