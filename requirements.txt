@@ -1,2 +1,121 @@
 streamlit
 plotly
+--- Step 0 ---
+Top A: 10kg | Top B: 20kg
+Tied C: 0kg | Tied D: 0kg
+Storage L: 0kg | Storage R: 0kg | Total: 0kg
+B1: 0% | B2: 0% | Gen: 0°
+Houses: dark
+Logs: 0 events
+
+Animating: Dropping 20kg from right (B to D)...
+
+--- Step 1 ---
+Top A: 20kg | Top B: 0kg
+Tied C: 0kg | Tied D: 10kg
+Storage L: 0kg | Storage R: 10kg | Total: 10kg
+B1: 16% | B2: 0% | Gen: 60°
+Houses: lit
+Logs: 2 events
+Last log: Added 10kg to A.
+
+Animating: Dropping 20kg from left (A to C)...
+
+--- Step 2 ---
+Top A: 0kg | Top B: 20kg
+Tied C: 10kg | Tied D: 0kg
+Storage L: 10kg | Storage R: 10kg | Total: 20kg
+B1: 32% | B2: 0% | Gen: 120°
+Houses: lit
+Logs: 4 events
+Last log: Added 10kg to B.
+
+Animating: Dropping 20kg from right (B to D)...
+
+--- Step 3 ---
+Top A: 20kg | Top B: 0kg
+Tied C: 0kg | Tied D: 10kg
+Storage L: 10kg | Storage R: 20kg | Total: 30kg
+B1: 48% | B2: 0% | Gen: 180°
+Houses: lit
+Logs: 6 events
+Last log: Added 10kg to A.
+
+Animating: Dropping 20kg from left (A to C)...
+
+--- Step 4 ---
+Top A: 0kg | Top B: 20kg
+Tied C: 10kg | Tied D: 0kg
+Storage L: 20kg | Storage R: 20kg | Total: 40kg
+B1: 64% | B2: 0% | Gen: 240°
+Houses: lit
+Logs: 8 events
+Last log: Added 10kg to B.
+
+Animating: Dropping 20kg from right (B to D)...
+
+--- Step 5 ---
+Top A: 20kg | Top B: 0kg
+Tied C: 0kg | Tied D: 10kg
+Storage L: 20kg | Storage R: 30kg | Total: 50kg
+B1: 80% | B2: 0% | Gen: 300°
+Houses: lit
+Logs: 10 events
+Last log: Added 10kg to A.
+
+Animating: Dropping 20kg from left (A to C)...
+
+--- Step 6 ---
+Top A: 0kg | Top B: 20kg
+Tied C: 10kg | Tied D: 0kg
+Storage L: 30kg | Storage R: 30kg | Total: 60kg
+B1: 96% | B2: 0% | Gen: 0°
+Houses: lit
+Logs: 12 events
+Last log: Added 10kg to B.
+
+Animating: Dropping 20kg from right (B to D)...
+
+--- Step 7 ---
+Top A: 20kg | Top B: 0kg
+Tied C: 0kg | Tied D: 10kg
+Storage L: 30kg | Storage R: 40kg | Total: 70kg
+B1: 100% | B2: 0% | Gen: 60°
+Houses: lit
+Logs: 14 events
+Last log: Added 10kg to A.
+
+Animating: Dropping 20kg from left (A to C)...
+
+Big Cycle: Dropping 160kg central...
+
+--- Step 8 ---
+Top A: 0kg | Top B: 20kg
+Tied C: 10kg | Tied D: 0kg
+Storage L: 0kg | Storage R: 0kg | Total: 0kg
+B1: 100% | B2: 40% | Gen: 120°
+Houses: lit
+Logs: 17 events
+Last log: Big cycle: Dropped 160kg, B2 +80%, full spin. Reset storages. Used 40% B2 to lift 160kg up.
+
+Animating: Dropping 20kg from right (B to D)...
+
+--- Step 9 ---
+Top A: 20kg | Top B: 0kg
+Tied C: 0kg | Tied D: 10kg
+Storage L: 0kg | Storage R: 10kg | Total: 10kg
+B1: 100% | B2: 40% | Gen: 180°
+Houses: lit
+Logs: 19 events
+Last log: Added 10kg to A.
+
+Animating: Dropping 20kg from left (A to C)...
+
+--- Step 10 ---
+Top A: 0kg | Top B: 20kg
+Tied C: 10kg | Tied D: 0kg
+Storage L: 10kg | Storage R: 10kg | Total: 20kg
+B1: 100% | B2: 40% | Gen: 240°
+Houses: lit
+Logs: 21 events
+Last log: Added 10kg to B.
