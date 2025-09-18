@@ -1,7 +1,6 @@
 import streamlit as st
 import time
 import plotly.graph_objects as go
-import uuid
 
 st.set_page_config(page_title="Gravity Battery - Seesaw Simulation", layout="wide")
 
@@ -43,10 +42,6 @@ if "logs" not in st.session_state:
     st.session_state.logs = []
 if "step_count" not in st.session_state:
     st.session_state.step_count = 0
-if "render_count" not in st.session_state:
-    st.session_state.render_count = 0  # Unique render counter
-if "last_update" not in st.session_state:
-    st.session_state.last_update = 0  # Track last UI update time
 
 # ---------- DRAW / ANIMATION HELPERS ----------
 def draw_scene(dropping=None, drop_y=None, dropping_size=10, note=""):
@@ -130,16 +125,11 @@ def draw_scene(dropping=None, drop_y=None, dropping_size=10, note=""):
 def animate_fall(placeholder, pt, color="#2b6cb0", start_y=50, end_y=-50, steps=50, size_kg=20):
     for step in range(steps):
         if st.session_state.stop_requested:
-            placeholder.empty()  # Clear placeholder
-            placeholder.plotly_chart(draw_scene(), use_container_width=True, key=f"scene_{st.session_state.render_count}")
-            st.session_state.render_count += 1
             return False
         t = step / (steps - 1)
         y = start_y + (end_y - start_y) * t
         fig = draw_scene(dropping=(pt, color), drop_y=y, dropping_size=size_kg)
-        placeholder.empty()  # Clear before new render
-        placeholder.plotly_chart(fig, use_container_width=True, key=f"scene_{st.session_state.render_count}")
-        st.session_state.render_count += 1
+        placeholder.plotly_chart(fig, use_container_width=True)
         time.sleep(FRAME_DELAY)
     return True
 
@@ -155,8 +145,6 @@ with left_col:
         st.session_state.stop_requested = False
         st.session_state.logs = []
         st.session_state.step_count = 0
-        st.session_state.render_count = 0  # Reset render counter
-        st.session_state.last_update = time.time()  # Reset update timer
     if st.button("Stop"):
         st.session_state.stop_requested = True
         st.session_state.running = False
@@ -174,37 +162,33 @@ with mid_col:
     scene_ph = st.empty()
 
 with right_col:
-    status_ph = st.empty()  # Placeholder for dynamic status
+    st.subheader("Status")
+    total_storage = st.session_state.storage_left + st.session_state.storage_right
+    total_mass = (st.session_state.blocks_top_A + st.session_state.blocks_top_B +
+                  st.session_state.tied_bottom_C + st.session_state.tied_bottom_D +
+                  st.session_state.storage_left // 10 + st.session_state.storage_right // 10) * 10
+    st.write(f"Step: {st.session_state.step_count}")
+    st.write(f"Top A: {st.session_state.blocks_top_A * 10} kg")
+    st.write(f"Top B: {st.session_state.blocks_top_B * 10} kg")
+    st.write(f"Tied at C: {st.session_state.tied_bottom_C * 10} kg")
+    st.write(f"Tied at D: {st.session_state.tied_bottom_D * 10} kg")
+    st.write(f"Storage left (C): {st.session_state.storage_left} kg")
+    st.write(f"Storage right (D): {st.session_state.storage_right} kg")
+    st.write(f"Total storage: {total_storage} kg")
+    st.write(f"Total mass: {total_mass} kg")
+    st.write(f"Battery B1: {st.session_state.battery1:.0f}%")
+    st.write(f"Battery B2: {st.session_state.battery2:.0f}%")
+    st.write(f"Generator angle: {st.session_state.generator_angle:.0f}°")
+    if st.session_state.houses_lit:
+        st.success("Houses are lit by B1!")
+    else:
+        st.info("Houses are not lit yet")
 
-# Initial scene and status draw
-if not st.session_state.running:
-    scene_ph.empty()
-    scene_ph.plotly_chart(draw_scene(), use_container_width=True, key=f"scene_{st.session_state.render_count}")
-    st.session_state.render_count += 1
-    with status_ph:
-        st.subheader("Status")
-        total_storage = st.session_state.storage_left + st.session_state.storage_right
-        total_mass = (st.session_state.blocks_top_A + st.session_state.blocks_top_B +
-                      st.session_state.tied_bottom_C + st.session_state.tied_bottom_D +
-                      st.session_state.storage_left // 10 + st.session_state.storage_right // 10) * 10
-        st.write(f"Top A: {st.session_state.blocks_top_A * 10} kg")
-        st.write(f"Top B: {st.session_state.blocks_top_B * 10} kg")
-        st.write(f"Tied at C: {st.session_state.tied_bottom_C * 10} kg")
-        st.write(f"Tied at D: {st.session_state.tied_bottom_D * 10} kg")
-        st.write(f"Storage left (C): {st.session_state.storage_left} kg")
-        st.write(f"Storage right (D): {st.session_state.storage_right} kg")
-        st.write(f"Total storage: {total_storage} kg")
-        st.write(f"Total mass: {total_mass} kg")
-        st.write(f"Battery B1: {st.session_state.battery1:.0f}%")
-        st.write(f"Battery B2: {st.session_state.battery2:.0f}%")
-        st.write(f"Generator angle: {st.session_state.generator_angle:.0f}°")
-        if st.session_state.houses_lit:
-            st.success("Houses are lit by B1!")
-        else:
-            st.info("Houses are not lit yet")
+# Render scene
+scene_ph.plotly_chart(draw_scene(), use_container_width=True)
 
-# ---------- AUTOMATIC LOOP ----------
-while st.session_state.running and not st.session_state.stop_requested:
+# ---------- SIMULATION STEP ----------
+if st.session_state.running and not st.session_state.stop_requested:
     dropped = False
     side = None
     opposite = None
@@ -229,7 +213,7 @@ while st.session_state.running and not st.session_state.stop_requested:
     if st.session_state.blocks_top_A == 2 and st.session_state.blocks_top_B < 2:
         ok = animate_fall(scene_ph, "left", color="#2b6cb0", steps=50, size_kg=20)
         if not ok:
-            break
+            st.session_state.stop_requested = True
         st.session_state.blocks_top_A = 0
         st.session_state.storage_left += 10
         st.session_state.tied_bottom_C += 1
@@ -241,7 +225,7 @@ while st.session_state.running and not st.session_state.stop_requested:
     elif st.session_state.blocks_top_B == 2 and st.session_state.blocks_top_A < 2:
         ok = animate_fall(scene_ph, "right", color="#c53030", steps=50, size_kg=20)
         if not ok:
-            break
+            st.session_state.stop_requested = True
         st.session_state.blocks_top_B = 0
         st.session_state.storage_right += 10
         st.session_state.tied_bottom_D += 1
@@ -255,7 +239,7 @@ while st.session_state.running and not st.session_state.stop_requested:
         if st.session_state.step_count % 2 == 0:
             ok = animate_fall(scene_ph, "left", color="#2b6cb0", steps=50, size_kg=20)
             if not ok:
-                break
+                st.session_state.stop_requested = True
             st.session_state.blocks_top_A = 0
             st.session_state.storage_left += 10
             st.session_state.tied_bottom_C += 1
@@ -266,7 +250,7 @@ while st.session_state.running and not st.session_state.stop_requested:
         else:
             ok = animate_fall(scene_ph, "right", color="#c53030", steps=50, size_kg=20)
             if not ok:
-                break
+                st.session_state.stop_requested = True
             st.session_state.blocks_top_B = 0
             st.session_state.storage_right += 10
             st.session_state.tied_bottom_D += 1
@@ -278,7 +262,8 @@ while st.session_state.running and not st.session_state.stop_requested:
 
     if not dropped:
         time.sleep(0.2)
-        continue
+        st.rerun()
+        # If no drop, short sleep and rerun to check again
 
     # Generate power for small drop (20kg)
     energy_joules = 20 * GRAVITY * HEIGHT  # 19,620 J
@@ -303,38 +288,9 @@ while st.session_state.running and not st.session_state.stop_requested:
     st.session_state.logs.append(f"Action: Added 10kg to {add_side}.")
     st.session_state.logs = st.session_state.logs[-100:]
 
-    # Update scene
-    scene_ph.empty()  # Clear placeholder
-    scene_ph.plotly_chart(draw_scene(), use_container_width=True, key=f"scene_{st.session_state.render_count}")
-    st.session_state.render_count += 1
+    # Update scene after drop
+    scene_ph.plotly_chart(draw_scene(), use_container_width=True)
     time.sleep(0.4)
-
-    # Update status dynamically
-    current_time = time.time()
-    if current_time - st.session_state.last_update >= 0.5:  # Update every 0.5 seconds
-        with status_ph:
-            status_ph.empty()  # Clear previous status
-            st.subheader("Status")
-            total_storage = st.session_state.storage_left + st.session_state.storage_right
-            total_mass = (st.session_state.blocks_top_A + st.session_state.blocks_top_B +
-                          st.session_state.tied_bottom_C + st.session_state.tied_bottom_D +
-                          st.session_state.storage_left // 10 + st.session_state.storage_right // 10) * 10
-            st.write(f"Top A: {st.session_state.blocks_top_A * 10} kg")
-            st.write(f"Top B: {st.session_state.blocks_top_B * 10} kg")
-            st.write(f"Tied at C: {st.session_state.tied_bottom_C * 10} kg")
-            st.write(f"Tied at D: {st.session_state.tied_bottom_D * 10} kg")
-            st.write(f"Storage left (C): {st.session_state.storage_left} kg")
-            st.write(f"Storage right (D): {st.session_state.storage_right} kg")
-            st.write(f"Total storage: {total_storage} kg")
-            st.write(f"Total mass: {total_mass} kg")
-            st.write(f"Battery B1: {st.session_state.battery1:.0f}%")
-            st.write(f"Battery B2: {st.session_state.battery2:.0f}%")
-            st.write(f"Generator angle: {st.session_state.generator_angle:.0f}°")
-            if st.session_state.houses_lit:
-                st.success("Houses are lit by B1!")
-            else:
-                st.info("Houses are not lit yet")
-        st.session_state.last_update = current_time
 
     # Check for STORAGE threshold -> trigger BIG CYCLE
     total_storage = st.session_state.storage_left + st.session_state.storage_right
@@ -342,7 +298,7 @@ while st.session_state.running and not st.session_state.stop_requested:
         st.session_state.logs.append(f"Action: Big cycle triggered (Storage = {total_storage}kg). Dropping 160kg...")
         ok = animate_fall(scene_ph, "BIG", color="#805ad5", steps=60, size_kg=160)
         if not ok:
-            break
+            st.session_state.stop_requested = True
         energy_joules = 160 * GRAVITY * HEIGHT  # 156,960 J
         st.session_state.generator_angle += (energy_joules / B2_CAPACITY) * 360
         st.session_state.battery2 = min(st.session_state.battery2 + (energy_joules / B2_CAPACITY) * 100, 100)
@@ -362,73 +318,11 @@ while st.session_state.running and not st.session_state.stop_requested:
         )
         st.session_state.logs = st.session_state.logs[-100:]
         st.session_state.houses_lit = st.session_state.battery1 >= 10
-        scene_ph.empty()  # Clear placeholder
-        scene_ph.plotly_chart(draw_scene(), use_container_width=True, key=f"scene_{st.session_state.render_count}")
-        st.session_state.render_count += 1
+        scene_ph.plotly_chart(draw_scene(), use_container_width=True)
         time.sleep(0.6)
 
-        # Update status after big cycle
-        with status_ph:
-            status_ph.empty()  # Clear previous status
-            st.subheader("Status")
-            total_storage = st.session_state.storage_left + st.session_state.storage_right
-            total_mass = (st.session_state.blocks_top_A + st.session_state.blocks_top_B +
-                          st.session_state.tied_bottom_C + st.session_state.tied_bottom_D +
-                          st.session_state.storage_left // 10 + st.session_state.storage_right // 10) * 10
-            st.write(f"Top A: {st.session_state.blocks_top_A * 10} kg")
-            st.write(f"Top B: {st.session_state.blocks_top_B * 10} kg")
-            st.write(f"Tied at C: {st.session_state.tied_bottom_C * 10} kg")
-            st.write(f"Tied at D: {st.session_state.tied_bottom_D * 10} kg")
-            st.write(f"Storage left (C): {st.session_state.storage_left} kg")
-            st.write(f"Storage right (D): {st.session_state.storage_right} kg")
-            st.write(f"Total storage: {total_storage} kg")
-            st.write(f"Total mass: {total_mass} kg")
-            st.write(f"Battery B1: {st.session_state.battery1:.0f}%")
-            st.write(f"Battery B2: {st.session_state.battery2:.0f}%")
-            st.write(f"Generator angle: {st.session_state.generator_angle:.0f}°")
-            if st.session_state.houses_lit:
-                st.success("Houses are lit by B1!")
-            else:
-                st.info("Houses are not lit yet")
-        st.session_state.last_update = current_time
-
-    if st.session_state.stop_requested:
-        break
-    time.sleep(0.2)
-
-# Cleanup
-if st.session_state.stop_requested:
-    st.session_state.running = False
-    st.session_state.stop_requested = False
-
-# Final state render
-scene_ph.empty()  # Clear placeholder
-scene_ph.plotly_chart(draw_scene(), use_container_width=True, key=f"scene_{st.session_state.render_count}")
-st.session_state.render_count += 1
-
-# Final status render
-with status_ph:
-    status_ph.empty()  # Clear previous status
-    st.subheader("Status")
-    total_storage = st.session_state.storage_left + st.session_state.storage_right
-    total_mass = (st.session_state.blocks_top_A + st.session_state.blocks_top_B +
-                  st.session_state.tied_bottom_C + st.session_state.tied_bottom_D +
-                  st.session_state.storage_left // 10 + st.session_state.storage_right // 10) * 10
-    st.write(f"Top A: {st.session_state.blocks_top_A * 10} kg")
-    st.write(f"Top B: {st.session_state.blocks_top_B * 10} kg")
-    st.write(f"Tied at C: {st.session_state.tied_bottom_C * 10} kg")
-    st.write(f"Tied at D: {st.session_state.tied_bottom_D * 10} kg")
-    st.write(f"Storage left (C): {st.session_state.storage_left} kg")
-    st.write(f"Storage right (D): {st.session_state.storage_right} kg")
-    st.write(f"Total storage: {total_storage} kg")
-    st.write(f"Total mass: {total_mass} kg")
-    st.write(f"Battery B1: {st.session_state.battery1:.0f}%")
-    st.write(f"Battery B2: {st.session_state.battery2:.0f}%")
-    st.write(f"Generator angle: {st.session_state.generator_angle:.0f}°")
-    if st.session_state.houses_lit:
-        st.success("Houses are lit by B1!")
-    else:
-        st.info("Houses are not lit yet")
+    # Rerun to update UI with new values
+    st.rerun()
 
 # Event Log display
 st.subheader("Simulation Steps & Events")
