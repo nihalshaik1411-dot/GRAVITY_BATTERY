@@ -1,0 +1,141 @@
+import { useState } from "react";
+import { motion } from "framer-motion";
+
+export default function GravityBatteryApp() {
+  const [blocksA, setBlocksA] = useState(0);
+  const [blocksB, setBlocksB] = useState(0);
+  const [storage, setStorage] = useState(0); // underground storage weight (kg)
+  const [battery1, setBattery1] = useState(0);
+  const [battery2, setBattery2] = useState(0);
+  const [generatorRotation, setGeneratorRotation] = useState(0);
+  const [housesLit, setHousesLit] = useState(false);
+
+  const addBlockA = () => setBlocksA(blocksA + 1);
+  const addBlockB = () => setBlocksB(blocksB + 1);
+
+  const dropBlock = (from) => {
+    if (from === "A" && blocksA > 0) {
+      setBlocksA(blocksA - 1);
+      handleDrop(10);
+    }
+    if (from === "B" && blocksB > 0) {
+      setBlocksB(blocksB - 1);
+      handleDrop(10);
+    }
+  };
+
+  const handleDrop = (weight) => {
+    // Rotate generator
+    setGeneratorRotation(generatorRotation + 180);
+    // Store energy into Battery1 for every block drop
+    setBattery1((prev) => Math.min(prev + 10, 100));
+    // Add to underground storage
+    setStorage((prev) => prev + weight);
+  };
+
+  // When storage reaches 80kg, trigger big cycle with 160kg
+  if (storage >= 80) {
+    triggerBigCycle();
+  }
+
+  function triggerBigCycle() {
+    setStorage(0); // reset underground storage
+    // Drop 160kg worth of weight
+    setGeneratorRotation(generatorRotation + 720);
+    setBattery2((prev) => Math.min(prev + 50, 100));
+    // Light up houses when Battery2 is charged
+    setHousesLit(true);
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6">
+      <h1 className="text-3xl font-bold mb-6">⚡ Gravity Battery Simulation</h1>
+
+      {/* Ground level */}
+      <div className="flex w-full justify-around mb-12">
+        {/* Point A */}
+        <div className="flex flex-col items-center">
+          <h2 className="font-semibold">Point A (+50m)</h2>
+          <p>{blocksA} blocks</p>
+          <button onClick={addBlockA} className="bg-blue-500 text-white px-3 py-1 rounded mt-2">+ Add Block</button>
+          <button onClick={() => dropBlock("A")} className="bg-green-500 text-white px-3 py-1 rounded mt-2">⬇ Drop</button>
+        </div>
+
+        {/* Generator */}
+        <div className="flex flex-col items-center">
+          <motion.div
+            animate={{ rotate: generatorRotation }}
+            transition={{ duration: 1 }}
+            className="w-20 h-20 border-4 border-gray-700 rounded-full flex items-center justify-center"
+          >
+            ⚙️
+          </motion.div>
+          <h2 className="font-semibold mt-2">Generator</h2>
+        </div>
+
+        {/* Point B */}
+        <div className="flex flex-col items-center">
+          <h2 className="font-semibold">Point B (+50m)</h2>
+          <p>{blocksB} blocks</p>
+          <button onClick={addBlockB} className="bg-blue-500 text-white px-3 py-1 rounded mt-2">+ Add Block</button>
+          <button onClick={() => dropBlock("B")} className="bg-green-500 text-white px-3 py-1 rounded mt-2">⬇ Drop</button>
+        </div>
+      </div>
+
+      {/* Underground points */}
+      <div className="flex w-full justify-around mb-12">
+        <div className="flex flex-col items-center">
+          <h2 className="font-semibold">Point C (–50m)</h2>
+          <p>Receives blocks</p>
+        </div>
+        <div className="flex flex-col items-center">
+          <h2 className="font-semibold">Point D (–50m)</h2>
+          <p>Receives blocks</p>
+        </div>
+      </div>
+
+      {/* Underground storage */}
+      <div className="flex flex-col items-center mb-12">
+        <h2 className="font-semibold">Underground Storage</h2>
+        <p>{storage} kg stored</p>
+        <div className="w-64 h-6 border border-gray-700 rounded overflow-hidden">
+          <div style={{ width: `${(storage / 160) * 100}%` }} className="h-full bg-purple-500"></div>
+        </div>
+      </div>
+
+      {/* Batteries */}
+      <div className="flex w-full justify-around mb-12">
+        <div className="flex flex-col items-center">
+          <h2 className="font-semibold">🔋 Battery B1</h2>
+          <div className="w-24 h-8 border border-gray-700 rounded overflow-hidden">
+            <div style={{ width: `${battery1}%` }} className="h-full bg-green-500"></div>
+          </div>
+        </div>
+
+        <div className="flex flex-col items-center">
+          <h2 className="font-semibold">🔋 Battery B2</h2>
+          <div className="w-24 h-8 border border-gray-700 rounded overflow-hidden">
+            <div style={{ width: `${battery2}%` }} className="h-full bg-yellow-500"></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Houses */}
+      <div className="flex flex-col items-center">
+        <h2 className="font-semibold mb-2">🏠 Houses</h2>
+        <div className="flex space-x-4">
+          {[1, 2, 3].map((i) => (
+            <motion.div
+              key={i}
+              animate={{ opacity: housesLit ? 1 : 0.3 }}
+              transition={{ duration: 0.5 }}
+              className={`w-12 h-12 rounded-md border flex items-center justify-center ${housesLit ? "bg-yellow-300" : "bg-gray-300"}`}
+            >
+              {housesLit ? "💡" : ""}
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
