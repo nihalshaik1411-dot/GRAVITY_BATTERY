@@ -20,24 +20,23 @@ if "houses_lit" not in st.session_state:
 
 
 # --- Functions ---
-def drop_block(from_point):
+def drop_block(from_point, placeholder):
     if from_point == "A" and st.session_state.blocks_A > 0:
         st.session_state.blocks_A -= 1
-        animate_drop("A")
+        animate_drop("A", placeholder)
     elif from_point == "B" and st.session_state.blocks_B > 0:
         st.session_state.blocks_B -= 1
-        animate_drop("B")
+        animate_drop("B", placeholder)
     else:
         st.warning("No blocks available to drop!")
 
 
-def animate_drop(point):
+def animate_drop(point, placeholder):
     """Simulates block dropping and generator rotation"""
-    with placeholder.container():
-        for y in range(50, -51, -10):  # from +50m to -50m
-            fig = draw_scene(drop_point=point, drop_y=y)
-            st.plotly_chart(fig, use_container_width=True)
-            time.sleep(0.2)
+    for y in range(50, -51, -10):  # from +50m to -50m
+        fig = draw_scene(drop_point=point, drop_y=y)
+        placeholder.plotly_chart(fig, use_container_width=True)
+        time.sleep(0.2)
 
     # after drop → block goes to storage
     st.session_state.storage += 10
@@ -77,7 +76,7 @@ def draw_scene(drop_point=None, drop_y=None):
                                    x1=-0.8 if drop_point=="A" else 1.2,
                                    y0=drop_y, y1=drop_y+1, fillcolor=color)
 
-    # Generator (circle with rotation arrow)
+    # Generator (circle with rotation angle)
     angle = st.session_state.generator_angle % 360
     fig.add_shape(type="circle", x0=-0.5, y0=-20, x1=0.5, y1=-21, line=dict(color="orange", width=3))
     fig.add_annotation(x=0, y=-20.5, text=f"⚙ {angle}°", showarrow=False, font=dict(color="orange"))
@@ -94,12 +93,15 @@ st.title("⚡ Gravity Battery Simulator (Prototype)")
 
 col1, col2, col3 = st.columns(3)
 
+# Create placeholder here once
+placeholder = st.empty()
+
 with col1:
     st.subheader("Controls")
     if st.button("Drop from A (10kg)"):
-        drop_block("A")
+        drop_block("A", placeholder)
     if st.button("Drop from B (10kg)"):
-        drop_block("B")
+        drop_block("B", placeholder)
 
 with col2:
     st.subheader("Battery B1")
@@ -113,6 +115,5 @@ with col3:
         st.info("🏠 Dark")
 
 # Draw main scene
-placeholder = st.empty()
 fig = draw_scene()
 placeholder.plotly_chart(fig, use_container_width=True)
