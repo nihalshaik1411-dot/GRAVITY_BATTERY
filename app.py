@@ -45,6 +45,8 @@ if "step_count" not in st.session_state:
     st.session_state.step_count = 0
 if "render_count" not in st.session_state:
     st.session_state.render_count = 0  # Unique render counter
+if "last_update" not in st.session_state:
+    st.session_state.last_update = 0  # Track last UI update time
 
 # ---------- DRAW / ANIMATION HELPERS ----------
 def draw_scene(dropping=None, drop_y=None, dropping_size=10, note=""):
@@ -154,6 +156,7 @@ with left_col:
         st.session_state.logs = []
         st.session_state.step_count = 0
         st.session_state.render_count = 0  # Reset render counter
+        st.session_state.last_update = time.time()  # Reset update timer
     if st.button("Stop"):
         st.session_state.stop_requested = True
         st.session_state.running = False
@@ -171,32 +174,34 @@ with mid_col:
     scene_ph = st.empty()
 
 with right_col:
-    st.subheader("Status")
-    total_storage = st.session_state.storage_left + st.session_state.storage_right
-    total_mass = (st.session_state.blocks_top_A + st.session_state.blocks_top_B +
-                  st.session_state.tied_bottom_C + st.session_state.tied_bottom_D +
-                  st.session_state.storage_left // 10 + st.session_state.storage_right // 10) * 10
-    st.write(f"Top A: {st.session_state.blocks_top_A * 10} kg")
-    st.write(f"Top B: {st.session_state.blocks_top_B * 10} kg")
-    st.write(f"Tied at C: {st.session_state.tied_bottom_C * 10} kg")
-    st.write(f"Tied at D: {st.session_state.tied_bottom_D * 10} kg")
-    st.write(f"Storage left (C): {st.session_state.storage_left} kg")
-    st.write(f"Storage right (D): {st.session_state.storage_right} kg")
-    st.write(f"Total storage: {total_storage} kg")
-    st.write(f"Total mass: {total_mass} kg")
-    st.write(f"Battery B1: {st.session_state.battery1:.0f}%")
-    st.write(f"Battery B2: {st.session_state.battery2:.0f}%")
-    st.write(f"Generator angle: {st.session_state.generator_angle:.0f}°")
-    if st.session_state.houses_lit:
-        st.success("Houses are lit by B1!")
-    else:
-        st.info("Houses are not lit yet")
+    status_ph = st.empty()  # Placeholder for dynamic status
 
-# Initial scene draw
+# Initial scene and status draw
 if not st.session_state.running:
     scene_ph.empty()
     scene_ph.plotly_chart(draw_scene(), use_container_width=True, key=f"scene_{st.session_state.render_count}")
     st.session_state.render_count += 1
+    with status_ph:
+        st.subheader("Status")
+        total_storage = st.session_state.storage_left + st.session_state.storage_right
+        total_mass = (st.session_state.blocks_top_A + st.session_state.blocks_top_B +
+                      st.session_state.tied_bottom_C + st.session_state.tied_bottom_D +
+                      st.session_state.storage_left // 10 + st.session_state.storage_right // 10) * 10
+        st.write(f"Top A: {st.session_state.blocks_top_A * 10} kg")
+        st.write(f"Top B: {st.session_state.blocks_top_B * 10} kg")
+        st.write(f"Tied at C: {st.session_state.tied_bottom_C * 10} kg")
+        st.write(f"Tied at D: {st.session_state.tied_bottom_D * 10} kg")
+        st.write(f"Storage left (C): {st.session_state.storage_left} kg")
+        st.write(f"Storage right (D): {st.session_state.storage_right} kg")
+        st.write(f"Total storage: {total_storage} kg")
+        st.write(f"Total mass: {total_mass} kg")
+        st.write(f"Battery B1: {st.session_state.battery1:.0f}%")
+        st.write(f"Battery B2: {st.session_state.battery2:.0f}%")
+        st.write(f"Generator angle: {st.session_state.generator_angle:.0f}°")
+        if st.session_state.houses_lit:
+            st.success("Houses are lit by B1!")
+        else:
+            st.info("Houses are not lit yet")
 
 # ---------- AUTOMATIC LOOP ----------
 while st.session_state.running and not st.session_state.stop_requested:
@@ -304,6 +309,33 @@ while st.session_state.running and not st.session_state.stop_requested:
     st.session_state.render_count += 1
     time.sleep(0.4)
 
+    # Update status dynamically
+    current_time = time.time()
+    if current_time - st.session_state.last_update >= 0.5:  # Update every 0.5 seconds
+        with status_ph:
+            status_ph.empty()  # Clear previous status
+            st.subheader("Status")
+            total_storage = st.session_state.storage_left + st.session_state.storage_right
+            total_mass = (st.session_state.blocks_top_A + st.session_state.blocks_top_B +
+                          st.session_state.tied_bottom_C + st.session_state.tied_bottom_D +
+                          st.session_state.storage_left // 10 + st.session_state.storage_right // 10) * 10
+            st.write(f"Top A: {st.session_state.blocks_top_A * 10} kg")
+            st.write(f"Top B: {st.session_state.blocks_top_B * 10} kg")
+            st.write(f"Tied at C: {st.session_state.tied_bottom_C * 10} kg")
+            st.write(f"Tied at D: {st.session_state.tied_bottom_D * 10} kg")
+            st.write(f"Storage left (C): {st.session_state.storage_left} kg")
+            st.write(f"Storage right (D): {st.session_state.storage_right} kg")
+            st.write(f"Total storage: {total_storage} kg")
+            st.write(f"Total mass: {total_mass} kg")
+            st.write(f"Battery B1: {st.session_state.battery1:.0f}%")
+            st.write(f"Battery B2: {st.session_state.battery2:.0f}%")
+            st.write(f"Generator angle: {st.session_state.generator_angle:.0f}°")
+            if st.session_state.houses_lit:
+                st.success("Houses are lit by B1!")
+            else:
+                st.info("Houses are not lit yet")
+        st.session_state.last_update = current_time
+
     # Check for STORAGE threshold -> trigger BIG CYCLE
     total_storage = st.session_state.storage_left + st.session_state.storage_right
     if total_storage >= STORAGE_THRESHOLD:
@@ -335,6 +367,31 @@ while st.session_state.running and not st.session_state.stop_requested:
         st.session_state.render_count += 1
         time.sleep(0.6)
 
+        # Update status after big cycle
+        with status_ph:
+            status_ph.empty()  # Clear previous status
+            st.subheader("Status")
+            total_storage = st.session_state.storage_left + st.session_state.storage_right
+            total_mass = (st.session_state.blocks_top_A + st.session_state.blocks_top_B +
+                          st.session_state.tied_bottom_C + st.session_state.tied_bottom_D +
+                          st.session_state.storage_left // 10 + st.session_state.storage_right // 10) * 10
+            st.write(f"Top A: {st.session_state.blocks_top_A * 10} kg")
+            st.write(f"Top B: {st.session_state.blocks_top_B * 10} kg")
+            st.write(f"Tied at C: {st.session_state.tied_bottom_C * 10} kg")
+            st.write(f"Tied at D: {st.session_state.tied_bottom_D * 10} kg")
+            st.write(f"Storage left (C): {st.session_state.storage_left} kg")
+            st.write(f"Storage right (D): {st.session_state.storage_right} kg")
+            st.write(f"Total storage: {total_storage} kg")
+            st.write(f"Total mass: {total_mass} kg")
+            st.write(f"Battery B1: {st.session_state.battery1:.0f}%")
+            st.write(f"Battery B2: {st.session_state.battery2:.0f}%")
+            st.write(f"Generator angle: {st.session_state.generator_angle:.0f}°")
+            if st.session_state.houses_lit:
+                st.success("Houses are lit by B1!")
+            else:
+                st.info("Houses are not lit yet")
+        st.session_state.last_update = current_time
+
     if st.session_state.stop_requested:
         break
     time.sleep(0.2)
@@ -348,6 +405,30 @@ if st.session_state.stop_requested:
 scene_ph.empty()  # Clear placeholder
 scene_ph.plotly_chart(draw_scene(), use_container_width=True, key=f"scene_{st.session_state.render_count}")
 st.session_state.render_count += 1
+
+# Final status render
+with status_ph:
+    status_ph.empty()  # Clear previous status
+    st.subheader("Status")
+    total_storage = st.session_state.storage_left + st.session_state.storage_right
+    total_mass = (st.session_state.blocks_top_A + st.session_state.blocks_top_B +
+                  st.session_state.tied_bottom_C + st.session_state.tied_bottom_D +
+                  st.session_state.storage_left // 10 + st.session_state.storage_right // 10) * 10
+    st.write(f"Top A: {st.session_state.blocks_top_A * 10} kg")
+    st.write(f"Top B: {st.session_state.blocks_top_B * 10} kg")
+    st.write(f"Tied at C: {st.session_state.tied_bottom_C * 10} kg")
+    st.write(f"Tied at D: {st.session_state.tied_bottom_D * 10} kg")
+    st.write(f"Storage left (C): {st.session_state.storage_left} kg")
+    st.write(f"Storage right (D): {st.session_state.storage_right} kg")
+    st.write(f"Total storage: {total_storage} kg")
+    st.write(f"Total mass: {total_mass} kg")
+    st.write(f"Battery B1: {st.session_state.battery1:.0f}%")
+    st.write(f"Battery B2: {st.session_state.battery2:.0f}%")
+    st.write(f"Generator angle: {st.session_state.generator_angle:.0f}°")
+    if st.session_state.houses_lit:
+        st.success("Houses are lit by B1!")
+    else:
+        st.info("Houses are not lit yet")
 
 # Event Log display
 st.subheader("Simulation Steps & Events")
