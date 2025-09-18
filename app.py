@@ -2,11 +2,11 @@ import streamlit as st
 import time
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="Gravity Battery - Alternative Seesaw Simulation", layout="wide")
+st.set_page_config(page_title="Gravity Battery - Seesaw Simulation", layout="wide")
 
 # ---------- CONFIG ----------
 FRAME_DELAY = 0.08   # seconds per animation frame (lower = faster)
-SMALL_DROP_ENERGY = 8  # battery1 units per 10kg drop
+SMALL_DROP_ENERGY = 8  # battery1 units per 10kg drop (16% for 20kg)
 BIG_DROP_ENERGY = 80   # battery2 units per 160kg drop
 STORAGE_THRESHOLD = 80  # kg to trigger big cycle
 # ----------------------------
@@ -36,6 +36,8 @@ if "running" not in st.session_state:
     st.session_state.running = False
 if "logs" not in st.session_state:
     st.session_state.logs = []
+if "step_count" not in st.session_state:
+    st.session_state.step_count = 0  # Track steps for logging
 # For animation control (to gracefully stop loops)
 if "stop_requested" not in st.session_state:
     st.session_state.stop_requested = False
@@ -134,7 +136,7 @@ def animate_fall(placeholder, pt, color="#2b6cb0", start_y=50, end_y=-50, steps=
     return True
 
 # ---------- MAIN UI ----------
-st.title("⚡ Gravity Battery — Alternative Seesaw Continuous Simulation")
+st.title("⚡ Gravity Battery — Seesaw Continuous Simulation")
 
 left_col, mid_col, right_col = st.columns([1, 2, 1])
 
@@ -144,6 +146,7 @@ with left_col:
         st.session_state.running = True
         st.session_state.stop_requested = False
         st.session_state.logs = []  # Clear logs on start
+        st.session_state.step_count = 0  # Reset step count
     if st.button("Stop"):
         st.session_state.stop_requested = True
         st.session_state.running = False
@@ -186,6 +189,19 @@ while st.session_state.running and not st.session_state.stop_requested:
     opposite = None
     color = None
     lifted = 0
+
+    # Log state at start of step
+    total_storage = st.session_state.storage_left + st.session_state.storage_right
+    st.session_state.step_count += 1
+    state_log = (
+        f"--- Step {st.session_state.step_count - 1} ---\n"
+        f"Top A: {st.session_state.blocks_top_A * 10}kg | Top B: {st.session_state.blocks_top_B * 10}kg\n"
+        f"Tied C: {st.session_state.tied_bottom_C * 10}kg | Tied D: {st.session_state.tied_bottom_D * 10}kg\n"
+        f"Storage L: {st.session_state.storage_left}kg | Storage R: {st.session_state.storage_right}kg | Total: {total_storage}kg\n"
+        f"B1: {st.session_state.battery1}% | B2: {st.session_state.battery2}% | Gen: {st.session_state.generator_angle}°\n"
+        f"Houses: {'lit' if st.session_state.houses_lit else 'dark'}"
+    )
+    st.session_state.logs.append(state_log)
 
     # Check for left drop
     if st.session_state.blocks_top_A == 2 and st.session_state.blocks_top_B < 2:
@@ -232,8 +248,10 @@ while st.session_state.running and not st.session_state.stop_requested:
     # Log drop event
     lift_to = "B" if opposite == "right" else "A"
     drop_to = "C" if side == "left" else "D"
-    st.session_state.logs.append(f"Dropped 20kg from {side.upper()} to {drop_to}, stored 10kg, tied 10kg. Lifted {lifted * 10}kg to {lift_to}. B1 +16%, Generator +60°.")
-
+    st.session_state.logs.append(
+        f"Action: Dropped 20kg from {side.upper()} to {drop_to}, stored 10kg, tied 10kg. "
+        f"Lifted {lifted * 10}kg to {lift_to}. B1 +16%, Generator +60°."
+    )
     # Add 10kg to opposite side
     if opposite == "left":
         st.session_state.blocks_top_A += 1
@@ -241,7 +259,7 @@ while st.session_state.running and not st.session_state.stop_requested:
     else:
         st.session_state.blocks_top_B += 1
         add_side = "B"
-    st.session_state.logs.append(f"Added 10kg to {add_side}.")
+    st.session_state.logs.append(f"Action: Added 10kg to {add_side}.")
 
     # Update scene
     scene_ph.plotly_chart(draw_scene(), use_container_width=True)
@@ -250,6 +268,8 @@ while st.session_state.running and not st.session_state.stop_requested:
     # Check for STORAGE threshold -> trigger BIG CYCLE
     total_storage = st.session_state.storage_left + st.session_state.storage_right
     if total_storage >= STORAGE_THRESHOLD:
+        # Log big cycle start
+        st.session_state.logs.append(f"Action: Big cycle triggered (Storage = {total_storage}kg). Dropping 160kg...")
         # BIG CYCLE: simulate 160kg drop (visual big falling mass)
         ok = animate_fall(scene_ph, "BIG", color="#805ad5", steps=60, size_kg=160)
         if not ok:
@@ -262,8 +282,17 @@ while st.session_state.running and not st.session_state.stop_requested:
         st.session_state.storage_right = 0
         # Use B2 energy to lift 160kg back up
         st.session_state.battery2 = max(st.session_state.battery2 - 40, 0)
-        # Log event
-        st.session_state.logs.append("Big cycle: Dropped 160kg, B2 +80%, full spin. Reset storages. Used 40% B2 to lift 160kg up.")
+        # Log big cycle
+        total_storage = st.session_state.storage_left + st.session_state.storage_right
+        st.session_state.logs.append(
+            f"--- Step {st.session_state.step_count} ---\n"
+            f"Top A: {st.session_state.blocks_top_A * 10}kg | Top B: {st.session_state.blocks_top_B * 10}kg\n"
+            f"Tied C: {st.session_state.tied_bottom_C * 10}kg | Tied D: {st.session_state.tied_bottom_D * 10}kg\n"
+            f"Storage L: {st.session_state.storage_left}kg | Storage R: {st.session_state.storage_right}kg | Total: {total_storage}kg\n"
+            f"B1: {st.session_state.battery1}% | B2: {st.session_state.battery2}% | Gen: {st.session_state.generator_angle}°\n"
+            f"Houses: {'lit' if st.session_state.houses_lit else 'dark'}\n"
+            f"Action: Big cycle: Dropped 160kg, B2 +80%, full spin. Reset storages. Used 40% B2 to lift 160kg up."
+        )
         # update houses
         st.session_state.houses_lit = st.session_state.battery1 >= 10
         # show immediate scene
@@ -283,5 +312,5 @@ if st.session_state.stop_requested:
 scene_ph.plotly_chart(draw_scene(), use_container_width=True)
 
 # Event Log display
-st.subheader("Event Log")
-st.text_area("Simulation Events", value="\n".join(st.session_state.logs), height=200, disabled=True)
+st.subheader("Simulation Steps & Events")
+st.text_area("Simulation Log", value="\n".join(st.session_state.logs), height=300, disabled=True)
