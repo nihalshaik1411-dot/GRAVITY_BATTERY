@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="Gravity Battery - Seesaw Simulation", layout="wide")
 
 # ---------- CONFIG ----------
-FRAME_DELAY = 0.08   # seconds per animation frame (lower = faster)
+FRAME_DELAY = 0.01   # seconds per animation frame (lower = faster)
 GRAVITY = 9.81      # m/s²
 HEIGHT = 100        # m (from +50m to -50m)
 B1_CAPACITY = 100_000  # Joules (100 kJ for Battery 1)
@@ -63,12 +63,12 @@ def draw_scene(moving_blocks=None, note=""):
 
     # Draw stacked blocks at top A (left, blue)
     for i in range(st.session_state.blocks_top_A):
-        y0 = 50 + i * 1.05
-        fig.add_shape(type="rect", x0=-2.1, x1=-1.5, y0=y0, y1=y0 + 0.95, fillcolor="#2b6cb0", line=dict(color="black"))
+        y0 = 50 + i * 3.5
+        fig.add_shape(type="rect", x0=-2.1, x1=-1.5, y0=y0, y1=y0 + 3.0, fillcolor="#2b6cb0", line=dict(color="black"))
     # Draw stacked blocks at top B (right, red)
     for i in range(st.session_state.blocks_top_B):
-        y0 = 50 + i * 1.05
-        fig.add_shape(type="rect", x0=1.5, x1=2.1, y0=y0, y1=y0 + 0.95, fillcolor="#c53030", line=dict(color="black"))
+        y0 = 50 + i * 3.5
+        fig.add_shape(type="rect", x0=1.5, x1=2.1, y0=y0, y1=y0 + 3.0, fillcolor="#c53030", line=dict(color="black"))
 
     # Tied block at bottom C (left, gray if present)
     if st.session_state.tied_bottom_C > 0:
@@ -81,15 +81,15 @@ def draw_scene(moving_blocks=None, note=""):
     num_stored_left = st.session_state.storage_left // 10
     base_y_left = -51.05
     for i in range(num_stored_left):
-        y1 = base_y_left - i * 1.05
-        y0 = y1 - 0.95
+        y1 = base_y_left - i * 3.5
+        y0 = y1 - 3
         fig.add_shape(type="rect", x0=-2.1, x1=-1.5, y0=y0, y1=y1, fillcolor="#dd6b20", line=dict(color="black"))
     # Stored blocks at right (below tied, orange)
     num_stored_right = st.session_state.storage_right // 10
     base_y_right = -51.05
     for i in range(num_stored_right):
-        y1 = base_y_right - i * 1.05
-        y0 = y1 - 0.95
+        y1 = base_y_right - i * 3.5
+        y0 = y1 - 3
         fig.add_shape(type="rect", x0=1.5, x1=2.1, y0=y0, y1=y1, fillcolor="#dd6b20", line=dict(color="black"))
 
     # Moving blocks (dropping or lifting)
