@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="Gravity Battery - Seesaw Simulation", layout="wide")
 
 # ---------- CONFIG ----------
-FRAME_DELAY = 0.01   # seconds per animation frame (lower = faster)
+FRAME_DELAY = 0.1   # seconds per animation frame (lower = faster)
 GRAVITY = 9.81      # m/s²
 HEIGHT = 100        # m (from +50m to -50m)
 B1_CAPACITY = 100_000  # Joules (100 kJ for Battery 1)
@@ -107,12 +107,12 @@ def draw_scene(moving_blocks=None, note=""):
                 x0, x1 = -0.8, 0.8  # Smaller width for 80kg
             else:
                 x0, x1 = -0.6, 0.6
-            fig.add_shape(type="rect", x0=x0, x1=x1, y0=y, y1=y + 0.95, fillcolor=color, line=dict(color="black"))
+            fig.add_shape(type="rect", x0=x0, x1=x1, y0=y, y1=y + 3, fillcolor=color, line=dict(color="black"))
             fig.add_annotation(x=(x0 + x1) / 2, y=y + 1.2, text=f"{label}: {size_kg}kg", showarrow=False)
 
     # Generator visual and angle
     angle = st.session_state.generator_angle % 360
-    fig.add_shape(type="circle", x0=-0.4, y0=-20.6, x1=0.4, y1=-21.6, line=dict(color="orange", width=3))
+    fig.add_shape(type="circle", x0=-5, y0=-20.6, x1=5, y1=-21.6, line=dict(color="orange", width=3))
     fig.add_annotation(x=0, y=-21.1, text=f"⚙ {angle:.0f}°", showarrow=False, font=dict(color="orange"))
 
     # Battery labels
