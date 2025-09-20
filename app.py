@@ -75,7 +75,7 @@ def draw_scene(moving_blocks=None, note=""):
         fig.add_shape(type="rect", x0=-2.1, x1=-1.5, y0=-51, y1=-50.05, fillcolor="gray", line=dict(color="black"))
     # Tied block at bottom D (right, gray if present)
     if st.session_state.tied_bottom_D > 0:
-        fig.add_shape(type="rect", x0=1.5, x1=2.1, y0=-51, y1=-50.05, fillcolor="gray", line=dict(color="black"))
+        fig.add_shape(type="rect", x0=3, x1=2.1, y0=-51, y1=-50.05, fillcolor="gray", line=dict(color="black"))
 
     # Stored blocks at left (below tied, orange)
     num_stored_left = st.session_state.storage_left // 10
@@ -112,7 +112,7 @@ def draw_scene(moving_blocks=None, note=""):
 
     # Generator visual and angle
     angle = st.session_state.generator_angle % 360
-    fig.add_shape(type="circle", x0=-5, y0=-20.6, x1=5, y1=-21.6, line=dict(color="orange", width=3))
+    fig.add_shape(type="circle", x0=-0.4, y0=-20.6, x1=0.4, y1=-21.6, line=dict(color="orange", width=3))
     fig.add_annotation(x=0, y=-21.1, text=f"⚙ {angle:.0f}°", showarrow=False, font=dict(color="orange"))
 
     # Battery labels
