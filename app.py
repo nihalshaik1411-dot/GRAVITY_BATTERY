@@ -75,7 +75,7 @@ def draw_scene(moving_blocks=None, note=""):
         fig.add_shape(type="rect", x0=-2.1, x1=-1.5, y0=-51, y1=-50.05, fillcolor="gray", line=dict(color="black"))
     # Tied block at bottom D (right, gray if present)
     if st.session_state.tied_bottom_D > 0:
-        fig.add_shape(type="rect", x0=1.5, x1=5, y0=-51, y1=-50.05, fillcolor="gray", line=dict(color="black"))
+        fig.add_shape(type="rect", x0=1.5, x1=2.1, y0=-151, y1=-150.05, fillcolor="gray", line=dict(color="black"))
 
     # Stored blocks at left (below tied, orange)
     num_stored_left = st.session_state.storage_left // 10
